@@ -1,0 +1,12 @@
+name: "DuckDB Schema Validation"
+command: 'duckdb -csv -c "DESCRIBE SELECT * FROM ''data.csv''"'
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: schema
+    stream: stdout
+    expected:
+      id: "BIGINT"
+      name: "VARCHAR"
+      score: "DOUBLE"
+      is_active: "BOOLEAN"

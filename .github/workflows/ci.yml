@@ -25,7 +25,9 @@ jobs:
       run: bash bootstrap.sh
 
     - name: Verify Dependencies
-      run: ./bin/highs --version
+      run: |
+        ./bin/highs --version
+        ./bin/duckdb --version
 
     - name: Run All Tests
       run: ./squidgame tests/

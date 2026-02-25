@@ -1,0 +1,8 @@
+name: "DuckDB SQL to CSV"
+command: "duckdb -csv -c 'SELECT 1 as a, 2 as b' > result.csv"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: file_match
+    pattern: "result.csv"
+    expected_file: "expected/result.csv"

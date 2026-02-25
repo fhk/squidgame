@@ -1,6 +1,7 @@
 package assertion
 
 import (
+	"encoding/csv"
 	"fmt"
 	"math"
 	"os"
@@ -129,6 +130,133 @@ func Run(a parser.Assertion, testDir string, stdout, stderr string, exitCode int
 			return Result{true, fmt.Sprintf("regex_tolerance (%s): found %g, expected %g (diff %g <= tolerance %g)", a.Stream, actualVal, expectedVal, diff, a.Tolerance)}
 		}
 		return Result{false, fmt.Sprintf("regex_tolerance (%s): found %g, expected %g (diff %g > tolerance %g)", a.Stream, actualVal, expectedVal, diff, a.Tolerance)}
+
+	case "schema":
+		output := getStream(a.Stream, stdout, stderr)
+		expectedSchema, ok := a.Expected.(map[string]interface{})
+		if !ok {
+			// YAML might unmarshal into map[interface{}]interface{}
+			// Let's try to convert it if possible or handle the most common case
+			return Result{false, "schema: expected value must be a map of column:type"}
+		}
+
+		// Simple CSV parsing for DuckDB DESCRIBE output
+		lines := strings.Split(strings.TrimSpace(output), "\n")
+		if len(lines) < 2 {
+			return Result{false, "schema: output is empty or missing header"}
+		}
+
+		actualSchema := make(map[string]string)
+		for i, line := range lines {
+			if i == 0 {
+				continue // Skip header: column_name,column_type,null,key,default,extra
+			}
+			parts := strings.Split(line, ",")
+			if len(parts) >= 2 {
+				// DuckDB DESCRIBE -csv output: column_name is parts[0], type is parts[1]
+				actualSchema[parts[0]] = parts[1]
+			}
+		}
+
+		for col, expType := range expectedSchema {
+			actualType, exists := actualSchema[col]
+			if !exists {
+				return Result{false, fmt.Sprintf("schema: column %q not found in output", col)}
+			}
+			if actualType != fmt.Sprintf("%v", expType) {
+				return Result{false, fmt.Sprintf("schema: column %q expected type %v, got %s", col, expType, actualType)}
+			}
+		}
+		return Result{true, "schema: all specified columns matched expected types"}
+
+	case "values":
+		output := getStream(a.Stream, stdout, stderr)
+		reader := csv.NewReader(strings.NewReader(strings.TrimSpace(output)))
+		records, err := reader.ReadAll()
+		if err != nil {
+			return Result{false, fmt.Sprintf("values: failed to parse CSV: %v", err)}
+		}
+		if len(records) < 2 {
+			return Result{false, "values: output has no data rows"}
+		}
+
+		header := records[0]
+		data := records[1:]
+		colIndices := make(map[string]int)
+		for i, name := range header {
+			colIndices[name] = i
+		}
+
+		constraints, ok := a.Expected.(map[string]interface{})
+		if !ok {
+			return Result{false, "values: expected must be a map of column:constraints"}
+		}
+
+		for colName, colConstRaw := range constraints {
+			idx, exists := colIndices[colName]
+			if !exists {
+				return Result{false, fmt.Sprintf("values: column %q not found", colName)}
+			}
+
+			colConst, ok := colConstRaw.(map[string]interface{})
+			if !ok {
+				return Result{false, fmt.Sprintf("values: constraints for %q must be a map", colName)}
+			}
+
+			uniqueValues := make(map[string]bool)
+			minVal := math.MaxFloat64
+			maxVal := -math.MaxFloat64
+			hasNumeric := false
+
+			for _, row := range data {
+				val := row[idx]
+				uniqueValues[val] = true
+
+				if f, err := strconv.ParseFloat(val, 64); err == nil {
+					hasNumeric = true
+					if f < minVal {
+						minVal = f
+					}
+					if f > maxVal {
+						maxVal = f
+					}
+				}
+
+				// Check allowed values immediately if specified
+				if allowedRaw, ok := colConst["allowed"]; ok {
+					allowedList, _ := allowedRaw.([]interface{})
+					found := false
+					for _, a := range allowedList {
+						if val == fmt.Sprintf("%v", a) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						return Result{false, fmt.Sprintf("values: column %q contains unauthorized value %q", colName, val)}
+					}
+				}
+			}
+
+			// Final checks for min/max/unique_count
+			if m, ok := toFloat64(colConst["min"]); ok {
+				if !hasNumeric || minVal < m {
+					return Result{false, fmt.Sprintf("values: column %q min value %g is less than expected %g", colName, minVal, m)}
+				}
+			}
+			if m, ok := toFloat64(colConst["max"]); ok {
+				if !hasNumeric || maxVal > m {
+					return Result{false, fmt.Sprintf("values: column %q max value %g is greater than expected %g", colName, maxVal, m)}
+				}
+			}
+			if uc, ok := toInt(colConst["unique_count"]); ok {
+				if len(uniqueValues) != uc {
+					return Result{false, fmt.Sprintf("values: column %q expected %d unique values, got %d", colName, uc, len(uniqueValues))}
+				}
+			}
+		}
+
+		return Result{true, "values: all data constraints satisfied"}
 
 	default:
 		return Result{false, fmt.Sprintf("unknown assertion type: %s", a.Type)}

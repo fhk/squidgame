@@ -1,0 +1,5 @@
+name: "DuckDB Parity Check"
+command: "duckdb -noheader -csv -c 'SELECT 1+1' > q1.csv && duckdb -noheader -csv -c 'SELECT 2' > q2.csv"
+assertions:
+  - type: custom_script
+    pattern: "compare.sh"

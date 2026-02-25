@@ -1,0 +1,15 @@
+name: "DuckDB Data Values Validation"
+command: 'duckdb -csv -c "SELECT * FROM ''data.csv''"'
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: values
+    stream: stdout
+    expected:
+      score:
+        min: 80
+        max: 100
+      is_active:
+        unique_count: 2
+      name:
+        allowed: ["Alice", "Bob", "Charlie"]
