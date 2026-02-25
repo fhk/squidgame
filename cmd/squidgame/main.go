@@ -40,6 +40,7 @@ func main() {
 	updateExpected := flag.Bool("update-expected", false, "Update expected/ from .results/output/ on failure")
 	dryRun := flag.Bool("dry-run", false, "Discover and validate test configs without executing them")
 	filter := flag.String("filter", "", "Only run tests whose folder names contain this substring")
+	concurrency := flag.Int("j", 4, "Number of tests to run in parallel")
 	flag.Parse()
 
 	fmt.Print(asciiArt)
@@ -49,7 +50,7 @@ func main() {
 		rootDir = flag.Arg(0)
 	}
 
-	fmt.Printf("Running tests in %s\n", rootDir)
+	fmt.Printf("Running tests in %s (concurrency: %d)\n", rootDir, *concurrency)
 
 	testDirs, err := runner.Discover(rootDir)
 	if err != nil {
@@ -81,21 +82,36 @@ func main() {
 		os.Exit(0)
 	}
 
-	_ = verbose // reserved for future verbose-only output
-
 	start := time.Now()
-	var results []runner.TestResult
+	resultsChan := make(chan runner.TestResult, len(testDirs))
+	dirsChan := make(chan string, len(testDirs))
 
-	for _, testDir := range testDirs {
-		r := runner.RunTest(testDir)
+	// Start workers
+	for i := 0; i < *concurrency; i++ {
+		go func() {
+			for dir := range dirsChan {
+				resultsChan <- runner.RunTest(dir)
+			}
+		}()
+	}
+
+	// Send jobs
+	for _, dir := range testDirs {
+		dirsChan <- dir
+	}
+	close(dirsChan)
+
+	var results []runner.TestResult
+	for i := 0; i < len(testDirs); i++ {
+		r := <-resultsChan
 		results = append(results, r)
 		result.PrintResult(r, *verbose, *showDiffs)
 
 		if *updateExpected && !r.Passed && r.Error == "" {
-			if err := updateExpectedOutputs(testDir); err != nil {
-				fmt.Fprintf(os.Stderr, "  Warning: could not update expected for %s: %v\n", testDir, err)
+			if err := updateExpectedOutputs(r.TestDir); err != nil {
+				fmt.Fprintf(os.Stderr, "  Warning: could not update expected for %s: %v\n", r.TestDir, err)
 			} else {
-				fmt.Printf("  Updated expected outputs for %s\n", testDir)
+				fmt.Printf("  Updated expected outputs for %s\n", r.TestDir)
 			}
 		}
 	}
