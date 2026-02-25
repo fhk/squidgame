@@ -1,5 +1,5 @@
 name: "Solve simple LP with HiGHS"
-command: "/workspace/bin/highs model.lp"
+command: "highs model.lp"
 assertions:
   - type: exit_code
     expected: 0

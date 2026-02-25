@@ -1,5 +1,5 @@
 name: "Afiro LP Model with Tolerance"
-command: "/workspace/bin/highs model.mps"
+command: "highs model.mps"
 assertions:
   - type: exit_code
     expected: 0

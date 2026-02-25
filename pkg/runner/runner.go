@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fhk/squidgame/pkg/assertion"
@@ -120,7 +121,22 @@ func runCommand(command, workDir string, env map[string]string, timeout int) (st
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	cmd.Dir = workDir
+
+	// Setup environment: include project bin/ in PATH
+	absBin, _ := filepath.Abs("bin")
 	cmd.Env = os.Environ()
+	pathSet := false
+	for i, envVar := range cmd.Env {
+		if strings.HasPrefix(envVar, "PATH=") {
+			cmd.Env[i] = fmt.Sprintf("PATH=%s:%s", absBin, envVar[5:])
+			pathSet = true
+			break
+		}
+	}
+	if !pathSet {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", absBin))
+	}
+
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -147,7 +163,22 @@ func runScript(scriptPath, workDir string, env map[string]string, timeout int) e
 
 	cmd := exec.CommandContext(ctx, "sh", scriptPath)
 	cmd.Dir = workDir
+
+	// Setup environment: include project bin/ in PATH
+	absBin, _ := filepath.Abs("bin")
 	cmd.Env = os.Environ()
+	pathSet := false
+	for i, envVar := range cmd.Env {
+		if strings.HasPrefix(envVar, "PATH=") {
+			cmd.Env[i] = fmt.Sprintf("PATH=%s:%s", absBin, envVar[5:])
+			pathSet = true
+			break
+		}
+	}
+	if !pathSet {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", absBin))
+	}
+
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}

@@ -3,11 +3,27 @@ set -e
 
 # Configuration
 HIGHS_VERSION="1.13.1"
-HIGHS_URL="https://github.com/ERGO-Code/HiGHS/releases/download/v${HIGHS_VERSION}/highs-${HIGHS_VERSION}-x86_64-linux-gnu-static-apache.tar.gz"
+
+# Detect architecture
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64)
+        HIGHS_ARCH="x86_64"
+        ;;
+    aarch64|arm64)
+        HIGHS_ARCH="aarch64"
+        ;;
+    *)
+        echo "❌ Unsupported architecture: $ARCH"
+        exit 1
+        ;;
+esac
+
+HIGHS_URL="https://github.com/ERGO-Code/HiGHS/releases/download/v${HIGHS_VERSION}/highs-${HIGHS_VERSION}-${HIGHS_ARCH}-linux-gnu-static-apache.tar.gz"
 BIN_DIR="./bin"
 TMP_DIR="./tmp_highs"
 
-echo "🚀 Bootstrapping Squidgame dependencies..."
+echo "🚀 Bootstrapping Squidgame dependencies (Arch: $HIGHS_ARCH)..."
 
 # Create bin directory
 mkdir -p "$BIN_DIR"
@@ -22,7 +38,6 @@ echo "📦 Extracting binary..."
 tar -xzf "${TMP_DIR}/highs.tar.gz" -C "$TMP_DIR"
 
 # Move the binary to ./bin/highs
-# The tarball structure typically has bin/highs
 if [ -f "${TMP_DIR}/bin/highs" ]; then
     mv "${TMP_DIR}/bin/highs" "$BIN_DIR/highs"
     chmod +x "$BIN_DIR/highs"
