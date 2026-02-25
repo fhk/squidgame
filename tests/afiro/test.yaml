@@ -1,0 +1,10 @@
+name: "Afiro LP Model with Tolerance"
+command: "/workspace/bin/highs model.mps"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: regex_tolerance
+    stream: stdout
+    pattern: "Objective value     : ([-+]?\\d*\\.?\\d+e?[-+]?\\d*)"
+    expected: -464.7531
+    tolerance: 0.001

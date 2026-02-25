@@ -91,6 +91,9 @@ func RunTest(testDir string) TestResult {
 		_ = runScript(teardownScript, tmpDir, config.Env, config.Timeout)
 	}
 
+	// Save results to .results/
+	saveResults(testDir, configPath, stdout, stderr, exitCode, fixturesDir, workDir)
+
 	// Evaluate assertions
 	var assertionResults []assertion.Result
 	allPassed := true
@@ -101,9 +104,6 @@ func RunTest(testDir string) TestResult {
 			allPassed = false
 		}
 	}
-
-	// Save results to .results/
-	saveResults(testDir, configPath, stdout, stderr, exitCode, fixturesDir)
 
 	return TestResult{
 		TestDir:    testDir,
@@ -199,7 +199,7 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func saveResults(testDir, configPath, stdout, stderr string, exitCode int, fixturesDir string) {
+func saveResults(testDir, configPath, stdout, stderr string, exitCode int, fixturesDir string, workDir string) {
 	resultsDir := filepath.Join(testDir, ".results")
 	for _, d := range []string{
 		filepath.Join(resultsDir, "input"),
@@ -215,10 +215,13 @@ func saveResults(testDir, configPath, stdout, stderr string, exitCode int, fixtu
 		_ = copyDir(fixturesDir, filepath.Join(resultsDir, "input", "fixtures"))
 	}
 
-	// Save outputs
+	// Save captured streams
 	_ = os.WriteFile(filepath.Join(resultsDir, "output", "stdout.txt"), []byte(stdout), 0644)
 	_ = os.WriteFile(filepath.Join(resultsDir, "output", "stderr.txt"), []byte(stderr), 0644)
 	_ = os.WriteFile(filepath.Join(resultsDir, "output", "exit_code"), []byte(fmt.Sprintf("%d", exitCode)), 0644)
+
+	// Save all other files from workDir
+	_ = copyDir(workDir, filepath.Join(resultsDir, "output"))
 
 	// Copy expected files for easy diffing
 	expectedDir := filepath.Join(testDir, "expected")

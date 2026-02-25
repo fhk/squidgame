@@ -1,0 +1,5 @@
+name: "Custom comparison script"
+command: 'sh -c "echo ''custom content'' > output.txt"'
+assertions:
+  - type: custom_script
+    pattern: "compare.sh"

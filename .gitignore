@@ -7,17 +7,27 @@
 *.dylib
 bin/
 dist/
+squidgame
 
 # --- Tooling & Dependencies ---
 # Vendor directory is usually ignored unless you strictly want to lock 
 # dependencies in your repo (not common since Go Modules)
 vendor/
+.go-path/
 
 # --- Testing & Coverage ---
 *.test
 *.out
+*.log
 coverage.txt
 profile.out
+.results/
+
+# --- Archives ---
+*.tar.gz
+*.zip
+*.7z
+*.rar
 
 # --- IDEs & Editors ---
 # JetBrains (IntelliJ, GoLand)

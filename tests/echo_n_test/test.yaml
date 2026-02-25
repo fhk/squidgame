@@ -1,0 +1,8 @@
+name: "Echo without newline"
+command: "echo -n 'no newline'"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: output_match
+    stream: stdout
+    expected_file: expected/stdout.txt

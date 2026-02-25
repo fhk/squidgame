@@ -13,6 +13,7 @@ type Assertion struct {
 	Stream       string      `yaml:"stream"`
 	ExpectedFile string      `yaml:"expected_file"`
 	Pattern      string      `yaml:"pattern"`
+	Tolerance    float64     `yaml:"tolerance"`
 }
 
 // TestConfig holds the parsed test.yaml configuration.

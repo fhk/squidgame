@@ -43,8 +43,7 @@ func PrintResult(r runner.TestResult, verbose, showDiffs bool) {
 		fmt.Printf("  %sFAIL%s (%s)\n", colorRed, colorReset, formatDuration(r.Duration))
 		if showDiffs {
 			fmt.Printf("\n  To view diffs:\n")
-			fmt.Printf("    diff -u %s/.results/expected/stdout.txt %s/.results/output/stdout.txt\n", r.TestDir, r.TestDir)
-			fmt.Printf("    diff -u %s/.results/expected/stderr.txt %s/.results/output/stderr.txt\n", r.TestDir, r.TestDir)
+			fmt.Printf("    diff -r %s/.results/expected %s/.results/output\n", r.TestDir, r.TestDir)
 		}
 	}
 }

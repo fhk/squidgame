@@ -4,18 +4,45 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fhk/squidgame/pkg/result"
 	"github.com/fhk/squidgame/pkg/runner"
 )
 
+const asciiArt = `
+ █████████   █████████  ███     ███  █████  ██████████      █████████   █████████  ██████████████  ██████████
+███░░░░░███ ███░░░░░███░███    ░███ ░░███  ░░███░░░░░███    ███░░░░░███ ███░░░░░███░░███░░███░░███ ░░███░░░░░ 
+░███    ░░░ ░███    ░███░███    ░███  ░███   ░███    ░███   ░███    ░░░ ░███    ░███ ░███ ░███ ░███  ░███      
+░░█████████ ░███    ░███░███    ░███  ░███   ░███    ░███   ░███  █████ ░███████████ ░███ ░███ ░███  ░████████ 
+ ░░░░░░░░███░███    ░███░███    ░███  ░███   ░███    ░███   ░███ ░░███  ░███░░░░░███ ░███ ░███ ░███  ░███░░░░  
+ ███    ░███░░███  █████░███    ░███  ░███   ░███    ███    ░███  ░███  ░███    ░███ ░███ ░███ ░███  ░███      
+░░█████████  ░░████████ ░░█████████   █████  ██████████     ░░█████████ █████   █████ █████░███ █████ ██████████
+ ░░░░░░░░░    ░░░░░░░░░  ░░░░░░░░░   ░░░░░  ░░░░░░░░░░       ░░░░░░░░░  ░░░░░   ░░░░░ ░░░░░ ░░░ ░░░░░ ░░░░░░░░░░
+
+          ○               △               □
+       ------- SQUIDGAME CLI TESTING -------
+`
+
 func main() {
-	verbose := flag.Bool("v", false, "Verbose output")
-	showDiffs := flag.Bool("show-diffs", false, "Show diff commands on failure")
-	updateExpected := flag.Bool("update-expected", false, "Update expected outputs from actual outputs")
-	dryRun := flag.Bool("dry-run", false, "Validate test configs without running them")
+	flag.Usage = func() {
+		fmt.Fprint(os.Stderr, asciiArt)
+		fmt.Fprintf(os.Stderr, "\nUsage: squidgame [options] [test_dir]\n\n")
+		fmt.Fprintln(os.Stderr, "Options:")
+		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, "\nEvery folder is a game. Survive or be ELIMINATED.")
+	}
+
+	verbose := flag.Bool("v", false, "Verbose output: show details for all assertions")
+	showDiffs := flag.Bool("show-diffs", false, "Show diff commands for failed tests")
+	updateExpected := flag.Bool("update-expected", false, "Update expected/ from .results/output/ on failure")
+	dryRun := flag.Bool("dry-run", false, "Discover and validate test configs without executing them")
+	filter := flag.String("filter", "", "Only run tests whose folder names contain this substring")
 	flag.Parse()
+
+	fmt.Print(asciiArt)
 
 	rootDir := "."
 	if flag.NArg() > 0 {
@@ -28,6 +55,17 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error discovering tests: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Filter testDirs if filter is provided
+	if *filter != "" {
+		var filtered []string
+		for _, dir := range testDirs {
+			if strings.Contains(filepath.Base(dir), *filter) {
+				filtered = append(filtered, dir)
+			}
+		}
+		testDirs = filtered
 	}
 
 	if len(testDirs) == 0 {
@@ -71,21 +109,29 @@ func main() {
 	}
 }
 
-// updateExpectedOutputs copies .results/output/* to expected/.
+// updateExpectedOutputs copies all files from .results/output/* to expected/.
 func updateExpectedOutputs(testDir string) error {
-	src := testDir + "/.results/output"
-	dst := testDir + "/expected"
+	src := filepath.Join(testDir, ".results", "output")
+	dst := filepath.Join(testDir, "expected")
 
 	if err := os.MkdirAll(dst, 0755); err != nil {
 		return err
 	}
 
-	for _, name := range []string{"stdout.txt", "stderr.txt"} {
-		data, err := os.ReadFile(src + "/" + name)
-		if err != nil {
-			continue // not all files may exist
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue // skip directories for now, or could use copyDir
 		}
-		if err := os.WriteFile(dst+"/"+name, data, 0644); err != nil {
+		data, err := os.ReadFile(filepath.Join(src, entry.Name()))
+		if err != nil {
+			continue
+		}
+		if err := os.WriteFile(filepath.Join(dst, entry.Name()), data, 0644); err != nil {
 			return err
 		}
 	}

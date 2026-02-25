@@ -1,0 +1,11 @@
+name: "Solve simple LP with HiGHS"
+command: "/workspace/bin/highs model.lp"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: output_contains
+    stream: stdout
+    pattern: "Model status        : Optimal"
+  - type: output_contains
+    stream: stdout
+    pattern: "Objective value     :  3.0"

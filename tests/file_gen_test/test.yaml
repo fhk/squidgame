@@ -1,0 +1,8 @@
+name: "Generate and match file"
+command: 'sh -c "echo ''file content'' > output.txt"'
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: file_match
+    pattern: "output.txt"
+    expected_file: expected/output.txt

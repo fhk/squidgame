@@ -1,0 +1,11 @@
+name: "List files"
+command: "ls"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: output_contains
+    stream: stdout
+    pattern: "file1.txt"
+  - type: output_contains
+    stream: stdout
+    pattern: "file2.txt"

@@ -1,0 +1,31 @@
+Running HiGHS 1.13.1 (git hash: 1d267d9): Copyright (c) 2026 under Apache 2.0 license terms
+Using BLAS: OpenBLAS 
+Command line parsed using CLI11 2.5.0: Copyright (c) 2017-2025 University of Cincinnati
+LP model has 27 rows; 32 cols; 83 nonzeros
+Coefficient ranges:
+  Matrix  [1e-01, 2e+00]
+  Cost    [3e-01, 1e+01]
+  Bound   [0e+00, 0e+00]
+  RHS     [4e+01, 5e+02]
+Presolving model
+22 rows, 29 cols, 74 nonzeros  0s
+15 rows, 22 cols, 60 nonzeros  0s
+9 rows, 12 cols, 32 nonzeros  0s
+7 rows, 10 cols, 28 nonzeros  0s
+7 rows, 10 cols, 28 nonzeros  0s
+Presolve reductions: rows 7(-20); columns 10(-22); nonzeros 28(-55) 
+Solving the presolved LP
+Using dual simplex solver
+  Iteration        Objective     Infeasibilities num(sum)
+          0    -1.9599945292e+00 Ph1: 4(4.97637); Du: 2(1.95999) 0.0s
+          6    -4.6475314286e+02 Pr: 0(0) 0.0s
+
+Performed postsolve
+Solving the original LP from the solution after postsolve
+
+Model name          : model
+Model status        : Optimal
+Simplex   iterations: 6
+Objective value     : -4.6475314286e+02
+P-D objective error :  0.0000000000e+00
+HiGHS run time      :          0.00

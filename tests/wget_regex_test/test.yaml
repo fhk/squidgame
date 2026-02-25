@@ -1,0 +1,8 @@
+name: "Wget regex version check"
+command: "wget --version"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: output_regex
+    stream: stdout
+    pattern: 'GNU Wget \d+\.\d+'
