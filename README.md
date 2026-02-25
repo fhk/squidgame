@@ -72,7 +72,7 @@ assertions:
   pattern: "Objective: ([-+]?\\d\*\\.?\\d+)"
   expected: 14500.50
   tolerance: 0.05 # Survived if within range
-``xs`
+```
 
 ---
 
