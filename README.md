@@ -60,7 +60,7 @@ If not…
 
 Define the command and the specific survival criteria.
 
-\`\`\`yaml
+````yaml
 name: "Round 1: The MILP Solver Challenge"
 command: "gurobi_cl TimeLimit=30 model.mps"
 assertions:
@@ -72,16 +72,16 @@ assertions:
   pattern: "Objective: ([-+]?\\d\*\\.?\\d+)"
   expected: 14500.50
   tolerance: 0.05 # Survived if within range
-  \`\`\`
+``xs`
 
 ---
 
 ### 2️⃣ The Preparation (Scripts)
 
-- **\`setup.sh\`** — The "Uniform."  
+- **\`setup.sh\`** — The "Uniform."
   Prepare the environment, fetch weights, or pull matrix files.
 
-- **\`teardown.sh\`** — The "Cleanup."  
+- **\`teardown.sh\`** — The "Cleanup."
   Kill background inference servers or wipe 10GB temp files.
 
 ---
@@ -96,40 +96,40 @@ Use your own diff tools to inspect the **"CCTV footage"** of why a player failed
 
 ## 🛠 Feature Backlog (The Prize Pool)
 
-We are building the ultimate non-deterministic engine.  
+We are building the ultimate non-deterministic engine.
 Here is what's coming to the **VIP Lounge**:
 
 ---
 
 ### 📈 Resource & Performance Benchmarking
 
-- [ ] **The "Exhaustion" Metric**  
+- [ ] **The "Exhaustion" Metric**
       Automatically capture peak CPU, Memory (RSS), and GPU VRAM usage for every run.
 
-- [ ] **Regression Detection**  
+- [ ] **Regression Detection**
       Fail the test if the current run is >20% slower or heavier than the "Golden" benchmark.
 
-- [ ] **Wall-Clock Watchdog**  
+- [ ] **Wall-Clock Watchdog**
       Track solver time across different hardware architectures.
 
 ---
 
 ### 🧪 Advanced Evaluation
 
-- [ ] **LLM-as-a-Judge**  
+- [ ] **LLM-as-a-Judge**
       An \`llm_eval\` assertion type to use a "Front Man" (like Claude or GPT-4) to judge the quality of an output.
 
-- [ ] **Statistical Survival**  
+- [ ] **Statistical Survival**
       Run a test N times and assert on the distribution (mean/variance) of the results.
 
-- [ ] **JSON Schema Validation**  
+- [ ] **JSON Schema Validation**
       Ensure ML inference outputs strictly follow a contract before checking values.
 
 ---
 
 ## 🏗 Project Structure
 
-\`\`\`text
+```text
 squidgame/
 ├── cmd/squidgame/ # The Front Man (CLI Entry Point)
 ├── pkg/
@@ -137,13 +137,13 @@ squidgame/
 │ ├── assertion/ # The Judges (Regex & Math Logic)
 │ └── result/ # The Scoreboard (Formatting & Diffs)
 └── tests/ # Dogfooding (The framework testing itself)
-\`\`\`
+````
 
 ---
 
 ## 🏆 CLI Usage
 
-\`\`\`bash
+```bash
 
 # Start the games in a directory
 
@@ -160,7 +160,7 @@ squidgame --update-expected
 # Review the footage (Open diff tool on failure)
 
 squidgame --show-diffs
-\`\`\`
+```
 
 ---
 
