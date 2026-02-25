@@ -1,0 +1,11 @@
+name: "Regex pattern matching"
+command: "echo 'Result: 42'"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: output_regex
+    stream: stdout
+    pattern: "Result: \\d+"
+  - type: output_not_contains
+    stream: stderr
+    pattern: "error"

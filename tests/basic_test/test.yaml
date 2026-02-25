@@ -1,0 +1,14 @@
+name: "Basic echo command"
+command: "echo hello"
+assertions:
+  - type: exit_code
+    expected: 0
+  - type: output_match
+    stream: stdout
+    expected_file: expected/stdout.txt
+  - type: output_contains
+    stream: stdout
+    pattern: "hello"
+  - type: output_not_contains
+    stream: stderr
+    pattern: "ERROR"

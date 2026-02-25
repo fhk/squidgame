@@ -1,0 +1,45 @@
+# --- Binaries ---
+# Compiled Layout: Core binaries often end up in the root or a bin/ folder
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# --- Tooling & Dependencies ---
+# Vendor directory is usually ignored unless you strictly want to lock 
+# dependencies in your repo (not common since Go Modules)
+vendor/
+
+# --- Testing & Coverage ---
+*.test
+*.out
+coverage.txt
+profile.out
+
+# --- IDEs & Editors ---
+# JetBrains (IntelliJ, GoLand)
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+# Except for recommended extensions/settings if you want to share them
+# !.vscode/settings.json
+# !.vscode/extensions.json
+
+# Vim/Sublime/etc.
+*~
+*.swp
+*.swo
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- Environment/Secrets ---
+# Never commit your API keys or secrets!
+.env
+.env.local

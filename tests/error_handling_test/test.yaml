@@ -1,0 +1,11 @@
+name: "Error handling - non-zero exit and stderr"
+command: "echo 'error message' >&2; exit 1"
+assertions:
+  - type: exit_code
+    expected: 1
+  - type: output_contains
+    stream: stderr
+    pattern: "error message"
+  - type: output_not_contains
+    stream: stdout
+    pattern: "error message"

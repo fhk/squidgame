@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go get gopkg.in/yaml.v3 2>&1)"
+    ]
+  }
+}
