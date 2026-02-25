@@ -60,7 +60,7 @@ If not…
 
 Define the command and the specific survival criteria.
 
-````yaml
+```yaml
 name: "Round 1: The MILP Solver Challenge"
 command: "gurobi_cl TimeLimit=30 model.mps"
 assertions:
@@ -137,7 +137,7 @@ squidgame/
 │ ├── assertion/ # The Judges (Regex & Math Logic)
 │ └── result/ # The Scoreboard (Formatting & Diffs)
 └── tests/ # Dogfooding (The framework testing itself)
-````
+```
 
 ---
 
