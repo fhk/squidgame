@@ -21,7 +21,7 @@ type Result struct {
 }
 
 // Run evaluates a single assertion against the command output.
-func Run(a parser.Assertion, testDir string, stdout, stderr string, exitCode int) Result {
+func Run(a parser.Assertion, testDir, workDir string, stdout, stderr string, exitCode int) Result {
 	switch a.Type {
 	case "exit_code":
 		expected, ok := toInt(a.Expected)
@@ -71,11 +71,7 @@ func Run(a parser.Assertion, testDir string, stdout, stderr string, exitCode int
 		return Result{false, fmt.Sprintf("output_regex (%s): does not match pattern %q", a.Stream, a.Pattern)}
 
 	case "file_match":
-		// This assertion assumes the file was created in the temp dir during RunTest
-		// and has been captured into .results/output/
-		// Since we don't have the temp dir path here, and saveResults already ran,
-		// we can check .results/output/<filename>
-		actualPath := filepath.Join(testDir, ".results", "output", a.Pattern) // Pattern used as filename for simplicity, or we could add a new field
+		actualPath := filepath.Join(workDir, a.Pattern)
 		expectedPath := filepath.Join(testDir, a.ExpectedFile)
 
 		actualBytes, err := os.ReadFile(actualPath)
@@ -93,11 +89,10 @@ func Run(a parser.Assertion, testDir string, stdout, stderr string, exitCode int
 		return Result{false, fmt.Sprintf("file_match: %s does not match expected", a.Pattern)}
 
 	case "custom_script":
-		scriptPath := filepath.Join(testDir, a.Pattern) // Pattern used as script name
-		actualDir := filepath.Join(testDir, ".results", "output")
-		expectedDir := filepath.Join(testDir, ".results", "expected")
+		scriptPath := filepath.Join(testDir, a.Pattern)
+		expectedDir := filepath.Join(testDir, "expected")
 
-		cmd := exec.Command("sh", scriptPath, actualDir, expectedDir)
+		cmd := exec.Command("sh", scriptPath, workDir, expectedDir)
 		output, err := cmd.CombinedOutput()
 		if err == nil {
 			return Result{true, fmt.Sprintf("custom_script (%s): passed", a.Pattern)}

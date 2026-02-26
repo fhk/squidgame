@@ -45,7 +45,7 @@ func Discover(rootDir string) ([]string, error) {
 }
 
 // RunTest executes a single test and returns its result.
-func RunTest(testDir string) TestResult {
+func RunTest(testDir string, verbose bool) TestResult {
 	start := time.Now()
 
 	configPath := filepath.Join(testDir, "test.yaml")
@@ -54,16 +54,19 @@ func RunTest(testDir string) TestResult {
 		return TestResult{TestDir: testDir, Error: fmt.Sprintf("failed to parse config: %v", err)}
 	}
 
-	tmpDir, err := os.MkdirTemp("", "squidgame-*")
-	if err != nil {
-		return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("failed to create temp dir: %v", err)}
+	// Use .results/ as the working directory: purge, recreate, copy fixtures in
+	resultsDir := filepath.Join(testDir, ".results")
+	if err := os.RemoveAll(resultsDir); err != nil {
+		return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("failed to clear .results: %v", err)}
 	}
-	defer os.RemoveAll(tmpDir)
+	if err := os.MkdirAll(resultsDir, 0755); err != nil {
+		return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("failed to create .results: %v", err)}
+	}
 
-	// Copy fixtures into temp dir
+	// Copy fixtures into .results/
 	fixturesDir := filepath.Join(testDir, "fixtures")
 	if info, err := os.Stat(fixturesDir); err == nil && info.IsDir() {
-		if err := copyDir(fixturesDir, tmpDir); err != nil {
+		if err := copyDir(fixturesDir, resultsDir); err != nil {
 			return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("failed to copy fixtures: %v", err)}
 		}
 	}
@@ -71,17 +74,17 @@ func RunTest(testDir string) TestResult {
 	// Run setup.sh if present
 	setupScript := filepath.Join(testDir, "setup.sh")
 	if _, err := os.Stat(setupScript); err == nil {
-		if err := runScript(setupScript, tmpDir, config.Env, config.Timeout); err != nil {
+		if err := runScript(setupScript, resultsDir, config.Env, config.Timeout); err != nil {
 			return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("setup.sh failed: %v", err)}
 		}
 	}
 
-	// Execute the test command
-	workDir := filepath.Join(tmpDir, config.WorkingDir)
+	// Execute the test command in .results/
+	workDir := filepath.Join(resultsDir, config.WorkingDir)
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("failed to create working dir: %v", err)}
 	}
-	stdout, stderr, exitCode, err := runCommand(config.Command, workDir, config.Env, config.Timeout)
+	stdout, stderr, exitCode, err := runCommand(config.Command, workDir, config.Env, config.Timeout, verbose)
 	if err != nil && exitCode == -1 {
 		return TestResult{TestDir: testDir, Config: config, Error: fmt.Sprintf("command execution failed: %v", err)}
 	}
@@ -89,17 +92,19 @@ func RunTest(testDir string) TestResult {
 	// Run teardown.sh if present (ignore errors)
 	teardownScript := filepath.Join(testDir, "teardown.sh")
 	if _, err := os.Stat(teardownScript); err == nil {
-		_ = runScript(teardownScript, tmpDir, config.Env, config.Timeout)
+		_ = runScript(teardownScript, resultsDir, config.Env, config.Timeout)
 	}
 
-	// Save results to .results/
-	saveResults(testDir, configPath, stdout, stderr, exitCode, fixturesDir, workDir)
+	// Save captured streams into .results/
+	_ = os.WriteFile(filepath.Join(resultsDir, "stdout.txt"), []byte(stdout), 0644)
+	_ = os.WriteFile(filepath.Join(resultsDir, "stderr.txt"), []byte(stderr), 0644)
+	_ = os.WriteFile(filepath.Join(resultsDir, "exit_code"), []byte(fmt.Sprintf("%d", exitCode)), 0644)
 
 	// Evaluate assertions
 	var assertionResults []assertion.Result
 	allPassed := true
 	for _, a := range config.Assertions {
-		result := assertion.Run(a, testDir, stdout, stderr, exitCode)
+		result := assertion.Run(a, testDir, workDir, stdout, stderr, exitCode)
 		assertionResults = append(assertionResults, result)
 		if !result.Passed {
 			allPassed = false
@@ -115,7 +120,7 @@ func RunTest(testDir string) TestResult {
 	}
 }
 
-func runCommand(command, workDir string, env map[string]string, timeout int) (string, string, int, error) {
+func runCommand(command, workDir string, env map[string]string, timeout int, verbose bool) (string, string, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
@@ -142,8 +147,13 @@ func runCommand(command, workDir string, env map[string]string, timeout int) (st
 	}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
+	if verbose {
+		cmd.Stdout = io.MultiWriter(&stdoutBuf, os.Stdout)
+		cmd.Stderr = io.MultiWriter(&stderrBuf, os.Stderr)
+	} else {
+		cmd.Stdout = &stdoutBuf
+		cmd.Stderr = &stderrBuf
+	}
 
 	err := cmd.Run()
 	exitCode := 0
@@ -230,33 +240,3 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func saveResults(testDir, configPath, stdout, stderr string, exitCode int, fixturesDir string, workDir string) {
-	resultsDir := filepath.Join(testDir, ".results")
-	for _, d := range []string{
-		filepath.Join(resultsDir, "input"),
-		filepath.Join(resultsDir, "output"),
-		filepath.Join(resultsDir, "expected"),
-	} {
-		_ = os.MkdirAll(d, 0755)
-	}
-
-	// Snapshot inputs
-	_ = copyFile(configPath, filepath.Join(resultsDir, "input", "test.yaml"))
-	if info, err := os.Stat(fixturesDir); err == nil && info.IsDir() {
-		_ = copyDir(fixturesDir, filepath.Join(resultsDir, "input", "fixtures"))
-	}
-
-	// Save captured streams
-	_ = os.WriteFile(filepath.Join(resultsDir, "output", "stdout.txt"), []byte(stdout), 0644)
-	_ = os.WriteFile(filepath.Join(resultsDir, "output", "stderr.txt"), []byte(stderr), 0644)
-	_ = os.WriteFile(filepath.Join(resultsDir, "output", "exit_code"), []byte(fmt.Sprintf("%d", exitCode)), 0644)
-
-	// Save all other files from workDir
-	_ = copyDir(workDir, filepath.Join(resultsDir, "output"))
-
-	// Copy expected files for easy diffing
-	expectedDir := filepath.Join(testDir, "expected")
-	if info, err := os.Stat(expectedDir); err == nil && info.IsDir() {
-		_ = copyDir(expectedDir, filepath.Join(resultsDir, "expected"))
-	}
-}

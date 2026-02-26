@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fhk/squidgame/pkg/parser"
 	"github.com/fhk/squidgame/pkg/result"
 	"github.com/fhk/squidgame/pkg/runner"
 )
@@ -37,7 +38,7 @@ func main() {
 
 	verbose := flag.Bool("v", false, "Verbose output: show details for all assertions")
 	showDiffs := flag.Bool("show-diffs", false, "Show diff commands for failed tests")
-	updateExpected := flag.Bool("update-expected", false, "Update expected/ from .results/output/ on failure")
+	updateExpected := flag.Bool("update-expected", false, "Copy .results/ into expected/ for all tests (pass or fail)")
 	dryRun := flag.Bool("dry-run", false, "Discover and validate test configs without executing them")
 	filter := flag.String("filter", "", "Only run tests whose folder names contain this substring")
 	concurrency := flag.Int("j", 4, "Number of tests to run in parallel")
@@ -76,8 +77,28 @@ func main() {
 
 	if *dryRun {
 		fmt.Printf("Found %d test(s) (dry run)\n", len(testDirs))
+		invalid := 0
 		for _, dir := range testDirs {
-			fmt.Printf("  %s\n", dir)
+			configPath := filepath.Join(dir, "test.yaml")
+			cfg, err := parser.ParseTestConfig(configPath)
+			if err != nil {
+				fmt.Printf("  INVALID %s: %v\n", dir, err)
+				invalid++
+				continue
+			}
+			if errs := cfg.Validate(); len(errs) > 0 {
+				fmt.Printf("  INVALID %s:\n", dir)
+				for _, e := range errs {
+					fmt.Printf("    - %s\n", e)
+				}
+				invalid++
+			} else {
+				fmt.Printf("  OK      %s\n", dir)
+			}
+		}
+		if invalid > 0 {
+			fmt.Printf("\n%d invalid config(s)\n", invalid)
+			os.Exit(1)
 		}
 		os.Exit(0)
 	}
@@ -90,7 +111,7 @@ func main() {
 	for i := 0; i < *concurrency; i++ {
 		go func() {
 			for dir := range dirsChan {
-				resultsChan <- runner.RunTest(dir)
+				resultsChan <- runner.RunTest(dir, *verbose)
 			}
 		}()
 	}
@@ -107,7 +128,7 @@ func main() {
 		results = append(results, r)
 		result.PrintResult(r, *verbose, *showDiffs)
 
-		if *updateExpected && !r.Passed && r.Error == "" {
+		if *updateExpected && r.Error == "" {
 			if err := updateExpectedOutputs(r.TestDir); err != nil {
 				fmt.Fprintf(os.Stderr, "  Warning: could not update expected for %s: %v\n", r.TestDir, err)
 			} else {
@@ -125,15 +146,20 @@ func main() {
 	}
 }
 
-// updateExpectedOutputs copies all files from .results/output/* to expected/.
+// updateExpectedOutputs copies .results/ contents into expected/.
 func updateExpectedOutputs(testDir string) error {
-	src := filepath.Join(testDir, ".results", "output")
+	src := filepath.Join(testDir, ".results")
 	dst := filepath.Join(testDir, "expected")
 
 	if err := os.MkdirAll(dst, 0755); err != nil {
 		return err
 	}
 
+	return copyDir(src, dst)
+}
+
+// copyDir copies flat files (non-recursive) from src into dst.
+func copyDir(src, dst string) error {
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		return err
@@ -141,11 +167,11 @@ func updateExpectedOutputs(testDir string) error {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			continue // skip directories for now, or could use copyDir
+			continue
 		}
 		data, err := os.ReadFile(filepath.Join(src, entry.Name()))
 		if err != nil {
-			continue
+			return err
 		}
 		if err := os.WriteFile(filepath.Join(dst, entry.Name()), data, 0644); err != nil {
 			return err

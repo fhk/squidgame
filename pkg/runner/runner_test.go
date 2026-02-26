@@ -80,7 +80,7 @@ assertions:
 		t.Fatal(err)
 	}
 
-	result := RunTest(tmpDir)
+	result := RunTest(tmpDir, false)
 
 	if result.Error != "" {
 		t.Fatalf("unexpected error: %s", result.Error)
@@ -108,7 +108,7 @@ assertions:
 		t.Fatal(err)
 	}
 
-	result := RunTest(tmpDir)
+	result := RunTest(tmpDir, false)
 
 	if result.Error != "" {
 		t.Fatalf("unexpected error: %s", result.Error)
@@ -143,7 +143,7 @@ assertions:
 		t.Fatal(err)
 	}
 
-	result := RunTest(tmpDir)
+	result := RunTest(tmpDir, false)
 
 	if result.Error != "" {
 		t.Fatalf("unexpected error: %s", result.Error)
@@ -172,7 +172,7 @@ assertions:
 		t.Fatal(err)
 	}
 
-	result := RunTest(tmpDir)
+	result := RunTest(tmpDir, false)
 
 	if result.Passed {
 		t.Error("expected test to fail")
@@ -196,7 +196,7 @@ assertions:
 		t.Fatal(err)
 	}
 
-	result := RunTest(tmpDir)
+	result := RunTest(tmpDir, false)
 
 	if result.Error != "" {
 		t.Fatalf("unexpected error: %s", result.Error)
@@ -224,18 +224,33 @@ assertions:
 		t.Fatal(err)
 	}
 
-	RunTest(tmpDir)
+	RunTest(tmpDir, false)
 
-	// Verify .results directory was created
-	for _, path := range []string{
-		filepath.Join(tmpDir, ".results", "output", "stdout.txt"),
-		filepath.Join(tmpDir, ".results", "output", "stderr.txt"),
-		filepath.Join(tmpDir, ".results", "output", "exit_code"),
-		filepath.Join(tmpDir, ".results", "input", "test.yaml"),
-	} {
-		if _, err := os.Stat(path); err != nil {
-			t.Errorf("expected results file %s to exist: %v", path, err)
+	resultsDir := filepath.Join(tmpDir, ".results")
+
+	// Verify flat .results/ files exist
+	for _, name := range []string{"stdout.txt", "stderr.txt", "exit_code"} {
+		if _, err := os.Stat(filepath.Join(resultsDir, name)); err != nil {
+			t.Errorf("expected .results/%s to exist: %v", name, err)
 		}
+	}
+
+	// Verify stdout content
+	stdout, err := os.ReadFile(filepath.Join(resultsDir, "stdout.txt"))
+	if err != nil {
+		t.Fatalf("could not read stdout.txt: %v", err)
+	}
+	if got := string(stdout); got != "output_value\n" {
+		t.Errorf("stdout.txt: expected %q, got %q", "output_value\n", got)
+	}
+
+	// Verify exit_code content
+	code, err := os.ReadFile(filepath.Join(resultsDir, "exit_code"))
+	if err != nil {
+		t.Fatalf("could not read exit_code: %v", err)
+	}
+	if string(code) != "0" {
+		t.Errorf("exit_code: expected %q, got %q", "0", string(code))
 	}
 }
 
@@ -246,7 +261,7 @@ func TestRunTest_InvalidConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := RunTest(tmpDir)
+	result := RunTest(tmpDir, false)
 	if result.Error == "" {
 		t.Error("expected error for invalid config")
 	}

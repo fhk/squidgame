@@ -28,6 +28,9 @@ func PrintResult(r runner.TestResult, verbose, showDiffs bool) {
 	}
 
 	for _, a := range r.Assertions {
+		if !verbose && a.Passed {
+			continue
+		}
 		mark := "✓"
 		color := colorGreen
 		if !a.Passed {
@@ -43,7 +46,7 @@ func PrintResult(r runner.TestResult, verbose, showDiffs bool) {
 		fmt.Printf("  %sFAIL%s (%s)\n", colorRed, colorReset, formatDuration(r.Duration))
 		if showDiffs {
 			fmt.Printf("\n  To view diffs:\n")
-			fmt.Printf("    diff -r %s/.results/expected %s/.results/output\n", r.TestDir, r.TestDir)
+			fmt.Printf("    diff -r %s/expected %s/.results\n", r.TestDir, r.TestDir)
 		}
 	}
 }

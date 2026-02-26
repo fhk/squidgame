@@ -1,0 +1,21 @@
+Running HiGHS 1.13.1 (git hash: 1d267d9): Copyright (c) 2026 under Apache 2.0 license terms
+Using BLAS: OpenBLAS 
+Command line parsed using CLI11 2.5.0: Copyright (c) 2017-2025 University of Cincinnati
+LP model has 2 rows; 2 cols; 2 nonzeros
+Coefficient ranges:
+  Matrix  [1e+00, 1e+00]
+  Cost    [1e+00, 1e+00]
+  Bound   [0e+00, 0e+00]
+  RHS     [1e+00, 2e+00]
+Presolving model
+0 rows, 0 cols, 0 nonzeros  0s
+0 rows, 0 cols, 0 nonzeros  0s
+Presolve reductions: rows 0(-2); columns 0(-2); nonzeros 0(-2) - Reduced to empty
+Performed postsolve
+Solving the original LP from the solution after postsolve
+
+Model name          : model
+Model status        : Optimal
+Objective value     :  3.0000000000e+00
+P-D objective error :  0.0000000000e+00
+HiGHS run time      :          0.01

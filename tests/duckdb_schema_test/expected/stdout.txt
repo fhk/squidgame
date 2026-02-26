@@ -1,0 +1,5 @@
+column_name,column_type,null,key,default,extra
+id,BIGINT,YES,NULL,NULL,NULL
+name,VARCHAR,YES,NULL,NULL,NULL
+score,DOUBLE,YES,NULL,NULL,NULL
+is_active,BOOLEAN,YES,NULL,NULL,NULL

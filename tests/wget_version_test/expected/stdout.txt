@@ -1,0 +1,32 @@
+GNU Wget 1.21.3 built on linux-gnu.
+
+-cares +digest -gpgme +https +ipv6 +iri +large-file -metalink +nls 
++ntlm +opie +psl +ssl/gnutls 
+
+Wgetrc: 
+    /etc/wgetrc (system)
+Locale: 
+    /usr/share/locale 
+Compile: 
+    gcc -DHAVE_CONFIG_H -DSYSTEM_WGETRC="/etc/wgetrc" 
+    -DLOCALEDIR="/usr/share/locale" -I. -I../../src -I../lib 
+    -I../../lib -Wdate-time -D_FORTIFY_SOURCE=2 
+    -I/usr/include/p11-kit-1 -DHAVE_LIBGNUTLS -DNDEBUG -g -O2 
+    -ffile-prefix-map=/build/reproducible-path/wget-1.21.3=. 
+    -fstack-protector-strong -Wformat -Werror=format-security 
+    -DNO_SSLv2 -D_FILE_OFFSET_BITS=64 -g -Wall 
+Link: 
+    gcc -I/usr/include/p11-kit-1 -DHAVE_LIBGNUTLS -DNDEBUG -g -O2 
+    -ffile-prefix-map=/build/reproducible-path/wget-1.21.3=. 
+    -fstack-protector-strong -Wformat -Werror=format-security 
+    -DNO_SSLv2 -D_FILE_OFFSET_BITS=64 -g -Wall -Wl,-z,relro -Wl,-z,now 
+    -lpcre2-8 -luuid -lidn2 -lnettle -lgnutls -lz -lpsl ../lib/libgnu.a 
+
+Copyright (C) 2015 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later
+<http://www.gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Originally written by Hrvoje Niksic <hniksic@xemacs.org>.
+Please send bug reports and questions to <bug-wget@gnu.org>.
